@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import * as vscode from 'vscode';
-import { LanguageClient } from 'vscode-languageclient/node';
+import { LanguageClient, ProtocolRequestType0 } from 'vscode-languageclient/node';
 import { registerLogger, traceError, traceLog, traceVerbose } from './common/log/logging';
 import {
     checkVersion,
@@ -62,6 +62,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         if (interpreterDetails.path) {
             traceVerbose(`Using interpreter from Python extension: ${interpreterDetails.path.join(' ')}`);
             lsClient = await restartServer(serverId, serverName, outputChannel, lsClient);
+           // lsClient?.sendRequest(ProtocolRequestType0.arguments)
             return;
         }
 
@@ -72,7 +73,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
                 'Please use Python 3.8 or greater.',
         );
     };
-
+    
     context.subscriptions.push(
         onDidChangePythonInterpreter(async () => {
             await runServer();

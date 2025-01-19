@@ -48,7 +48,7 @@ RUNNER = pathlib.Path(__file__).parent / "lsp_runner.py"
 MAX_WORKERS = 5
 # TODO: Update the language server name and version.
 LSP_SERVER = server.LanguageServer(
-    name="<pytool-display-name>", version="<server version>", max_workers=MAX_WORKERS
+    name="Frappe Support for VSCode", version="0.1", max_workers=MAX_WORKERS
 )
 
 
@@ -56,22 +56,9 @@ LSP_SERVER = server.LanguageServer(
 # Tool specific code goes below this.
 # **********************************************************
 
-# Reference:
-#  LS Protocol:
-#  https://microsoft.github.io/language-server-protocol/specifications/specification-3-16/
-#
-#  Sample implementations:
-#  Pylint: https://github.com/microsoft/vscode-pylint/blob/main/bundled/tool
-#  Black: https://github.com/microsoft/vscode-black-formatter/blob/main/bundled/tool
-#  isort: https://github.com/microsoft/vscode-isort/blob/main/bundled/tool
+TOOL_MODULE = "frappe-vscode"
 
-# TODO: Update TOOL_MODULE with the module name for your tool.
-# e.g, TOOL_MODULE = "pylint"
-TOOL_MODULE = "<pytool-module>"
-
-# TODO: Update TOOL_DISPLAY with a display name for your tool.
-# e.g, TOOL_DISPLAY = "Pylint"
-TOOL_DISPLAY = "<pytool-display-name>"
+TOOL_DISPLAY = "Frappe Support for VSCode"
 
 # TODO: Update TOOL_ARGS with default argument you have to pass to your tool in
 # all scenarios.
@@ -91,7 +78,7 @@ TOOL_ARGS = []  # default arguments always passed to your tool.
 @LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_OPEN)
 def did_open(params: lsp.DidOpenTextDocumentParams) -> None:
     """LSP handler for textDocument/didOpen request."""
-    document = LSP_SERVER.workspace.get_document(params.text_document.uri)
+    document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
     diagnostics: list[lsp.Diagnostic] = _linting_helper(document)
     LSP_SERVER.publish_diagnostics(document.uri, diagnostics)
 
@@ -99,7 +86,7 @@ def did_open(params: lsp.DidOpenTextDocumentParams) -> None:
 @LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_SAVE)
 def did_save(params: lsp.DidSaveTextDocumentParams) -> None:
     """LSP handler for textDocument/didSave request."""
-    document = LSP_SERVER.workspace.get_document(params.text_document.uri)
+    document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
     diagnostics: list[lsp.Diagnostic] = _linting_helper(document)
     LSP_SERVER.publish_diagnostics(document.uri, diagnostics)
 
@@ -107,7 +94,7 @@ def did_save(params: lsp.DidSaveTextDocumentParams) -> None:
 @LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_CLOSE)
 def did_close(params: lsp.DidCloseTextDocumentParams) -> None:
     """LSP handler for textDocument/didClose request."""
-    document = LSP_SERVER.workspace.get_document(params.text_document.uri)
+    document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
     # Publishing empty diagnostics to clear the entries for this file.
     LSP_SERVER.publish_diagnostics(document.uri, [])
 
@@ -117,7 +104,7 @@ def _linting_helper(document: workspace.Document) -> list[lsp.Diagnostic]:
     # If you want to support linting on change then your tool will need to
     # support linting over stdin to be effective. Read, and update
     # _run_tool_on_document and _run_tool functions as needed for your project.
-    result = _run_tool_on_document(document)
+    result = utils.RunResult("","")#_run_tool_on_document(document)
     return _parse_output_using_regex(result.stdout) if result.stdout else []
 
 
@@ -178,6 +165,13 @@ def _get_severity(*_codes: list[str]) -> lsp.DiagnosticSeverity:
     # change it as appropriate for your linter.
     return lsp.DiagnosticSeverity.Warning
 
+@LSP_SERVER.feature(lsp.TEXT_DOCUMENT_COMPLETION)
+def suggest_completion(params: lsp.InitializeParams) -> None:
+    return []
+
+@LSP_SERVER.feature("frappe/tree_data")
+def send_frappe_data(params: lsp.InitializeParams) -> None:
+    pass
 
 # **********************************************************
 # Linting features end here
@@ -200,7 +194,7 @@ def formatting(params: lsp.DocumentFormattingParams) -> list[lsp.TextEdit] | Non
     # formatting support on save. You have to return an array of lsp.TextEdit
     # objects, to provide your formatted results.
 
-    document = LSP_SERVER.workspace.get_document(params.text_document.uri)
+    document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
     edits = _formatting_helper(document)
     if edits:
         return edits
@@ -215,7 +209,7 @@ def _formatting_helper(document: workspace.Document) -> list[lsp.TextEdit] | Non
     # formatting via stdin.
     # Read, and update_run_tool_on_document and _run_tool functions as needed
     # for your formatter.
-    result = _run_tool_on_document(document, use_stdin=True)
+    result = utils.RunResult("","")#_run_tool_on_document(document, use_stdin=True)
     if result.stdout:
         new_source = _match_line_endings(document, result.stdout)
         return [
@@ -475,13 +469,14 @@ def _run_tool_on_document(
                 # with code for your tool. You can also use `utils.run_api` helper, which
                 # handles changing working directories, managing io streams, etc.
                 # Also update `_run_tool` function and `utils.run_module` in `lsp_runner.py`.
-                result = utils.run_module(
-                    module=TOOL_MODULE,
-                    argv=argv,
-                    use_stdin=use_stdin,
-                    cwd=cwd,
-                    source=document.source,
-                )
+                # result = utils.run_module(
+                #     module=TOOL_MODULE,
+                #     argv=argv,
+                #     use_stdin=use_stdin,
+                #     cwd=cwd,
+                #     source=document.source,
+                # )
+                pass
             except Exception:
                 log_error(traceback.format_exc(chain=True))
                 raise
