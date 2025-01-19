@@ -16,8 +16,12 @@ import { checkIfConfigurationChanged, getInterpreterFromSetting } from './common
 import { loadServerDefaults } from './common/setup';
 import { getLSClientTraceLevel } from './common/utilities';
 import { createOutputChannel, onDidChangeConfiguration, registerCommand } from './common/vscodeapi';
+import { runBenchFindCommand } from './commands/bench_commands';
+import { TreeViewHelper } from './tree_view_helper';
+import { FrappeTreeViewProvider } from './views/apps_provider';
 
 let lsClient: LanguageClient | undefined;
+let treeViewHelper: TreeViewHelper | undefined;
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
     // This is required to get server name and module. This should be
     // the first thing that we do in this extension.
@@ -47,13 +51,26 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     traceLog(`Name: ${serverInfo.name}`);
     traceLog(`Module: ${serverInfo.module}`);
     traceVerbose(`Full Server Info: ${JSON.stringify(serverInfo)}`);
-
+    let benchLocation: string | undefined = undefined;
     const runServer = async () => {
         const interpreter = getInterpreterFromSetting(serverId);
+        try {
+            benchLocation = runBenchFindCommand();
+        } catch (error) {
+
+        }
+        if (benchLocation === undefined) {
+            return;
+        }
         if (interpreter && interpreter.length > 0) {
             if (checkVersion(await resolveInterpreter(interpreter))) {
                 traceVerbose(`Using interpreter from ${serverInfo.module}.interpreter: ${interpreter.join(' ')}`);
-                lsClient = await restartServer(serverId, serverName, outputChannel, lsClient);
+                lsClient = await restartServer(serverId, serverName, outputChannel, benchLocation, lsClient);
+                treeViewHelper = new TreeViewHelper(lsClient);
+                const appTreeViewProvider = new FrappeTreeViewProvider(treeViewHelper);
+                vscode.window.createTreeView('frappe_apps', {
+                    treeDataProvider: appTreeViewProvider
+                });
             }
             return;
         }
@@ -61,19 +78,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         const interpreterDetails = await getInterpreterDetails();
         if (interpreterDetails.path) {
             traceVerbose(`Using interpreter from Python extension: ${interpreterDetails.path.join(' ')}`);
-            lsClient = await restartServer(serverId, serverName, outputChannel, lsClient);
-           // lsClient?.sendRequest(ProtocolRequestType0.arguments)
+
+            lsClient = await restartServer(serverId, serverName, outputChannel, benchLocation, lsClient);
+            treeViewHelper = new TreeViewHelper(lsClient);
+            const appTreeViewProvider = new FrappeTreeViewProvider(treeViewHelper);
+            vscode.window.createTreeView('frappe_apps', {
+                treeDataProvider: appTreeViewProvider
+            });
             return;
         }
 
         traceError(
             'Python interpreter missing:\r\n' +
-                '[Option 1] Select python interpreter using the ms-python.python.\r\n' +
-                `[Option 2] Set an interpreter using "${serverId}.interpreter" setting.\r\n` +
-                'Please use Python 3.8 or greater.',
+            '[Option 1] Select python interpreter using the ms-python.python.\r\n' +
+            `[Option 2] Set an interpreter using "${serverId}.interpreter" setting.\r\n` +
+            'Please use Python 3.8 or greater.',
         );
     };
-    
+
     context.subscriptions.push(
         onDidChangePythonInterpreter(async () => {
             await runServer();

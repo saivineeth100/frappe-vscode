@@ -17,7 +17,7 @@ import { getExtensionSettings, getGlobalSettings, getWorkspaceSettings, ISetting
 import { getLSClientTraceLevel, getProjectRoot } from './utilities';
 import { isVirtualWorkspace } from './vscodeapi';
 
-export type IInitOptions = { settings: ISettings[]; globalSettings: ISettings };
+export type IInitOptions = { settings: ISettings[]; globalSettings: ISettings, benchLocation: string };
 
 async function createServer(
     settings: ISettings,
@@ -63,11 +63,11 @@ async function createServer(
         documentSelector: isVirtualWorkspace()
             ? [{ language: 'python' }]
             : [
-                  { scheme: 'file', language: 'python' },
-                  { scheme: 'untitled', language: 'python' },
-                  { scheme: 'vscode-notebook', language: 'python' },
-                  { scheme: 'vscode-notebook-cell', language: 'python' },
-              ],
+                { scheme: 'file', language: 'python' },
+                { scheme: 'untitled', language: 'python' },
+                { scheme: 'vscode-notebook', language: 'python' },
+                { scheme: 'vscode-notebook-cell', language: 'python' },
+            ],
         outputChannel: outputChannel,
         traceOutputChannel: outputChannel,
         revealOutputChannelOn: RevealOutputChannelOn.Never,
@@ -82,7 +82,8 @@ export async function restartServer(
     serverId: string,
     serverName: string,
     outputChannel: LogOutputChannel,
-    lsClient?: LanguageClient,
+    benchLocation: string,
+    lsClient?: LanguageClient
 ): Promise<LanguageClient | undefined> {
     if (lsClient) {
         traceInfo(`Server: Stop requested`);
@@ -96,6 +97,7 @@ export async function restartServer(
     const newLSClient = await createServer(workspaceSetting, serverId, serverName, outputChannel, {
         settings: await getExtensionSettings(serverId, true),
         globalSettings: await getGlobalSettings(serverId, false),
+        benchLocation: benchLocation
     });
     traceInfo(`Server: Start requested.`);
     _disposables.push(

@@ -62,6 +62,24 @@
         "vsce-package": "vsce package -o frappe-vscode.vsix"
     },
     "contributes": {
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "frappe",
+                    "title": "Frappe",
+                    "icon": "$(browser)"
+                }
+            ]
+        },
+        "views": {
+            "frappe": [
+                {
+                    "id": "frappe_apps",
+                    "name": "Apps",
+                    "icon": "$(database)"
+                }
+            ]
+        },
         "configuration": {
             "properties": {
                 "frappe-vscode.args": {
