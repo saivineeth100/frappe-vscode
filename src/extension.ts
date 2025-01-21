@@ -66,7 +66,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             if (checkVersion(await resolveInterpreter(interpreter))) {
                 traceVerbose(`Using interpreter from ${serverInfo.module}.interpreter: ${interpreter.join(' ')}`);
                 lsClient = await restartServer(serverId, serverName, outputChannel, benchLocation, lsClient);
-                treeViewHelper = new TreeViewHelper(lsClient);
+                treeViewHelper = new TreeViewHelper(lsClient!);
                 const appTreeViewProvider = new FrappeTreeViewProvider(treeViewHelper);
                 vscode.window.createTreeView('frappe_apps', {
                     treeDataProvider: appTreeViewProvider
@@ -76,11 +76,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         }
 
         const interpreterDetails = await getInterpreterDetails();
-        if (interpreterDetails.path) {
+        if (interpreterDetails.path && interpreterDetails.path[0].includes(benchLocation)) {
             traceVerbose(`Using interpreter from Python extension: ${interpreterDetails.path.join(' ')}`);
 
             lsClient = await restartServer(serverId, serverName, outputChannel, benchLocation, lsClient);
-            treeViewHelper = new TreeViewHelper(lsClient);
+            treeViewHelper = new TreeViewHelper(lsClient!);
             const appTreeViewProvider = new FrappeTreeViewProvider(treeViewHelper);
             vscode.window.createTreeView('frappe_apps', {
                 treeDataProvider: appTreeViewProvider
@@ -95,7 +95,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             'Please use Python 3.8 or greater.',
         );
     };
-
     context.subscriptions.push(
         onDidChangePythonInterpreter(async () => {
             await runServer();

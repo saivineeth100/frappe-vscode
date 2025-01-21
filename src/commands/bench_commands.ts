@@ -5,7 +5,7 @@ export  function benchcommandsRunner(command: string, args: string | null = null
         const cp = require('child_process');
         let argument = args;
         let operation: string = command + ' ' + argument;
-        let cmd = 'bench ' + (args == null ? command : operation);
+        let cmd = 'bench ' + (args === null ? command : operation);
         const proc =  cp.spawnSync(cmd, {
             shell: true,
             encoding: 'utf8',
@@ -24,15 +24,15 @@ export  function benchcommandsRunner(command: string, args: string | null = null
         return procData;
     } catch (error) {
 
-        return null
+        return null;
     }
 }
 export  function runBenchFindCommand() {
     try {
-        let resp =  benchcommandsRunner("find")
-        return resp?.replace(" found!\n","")
+        let resp =  benchcommandsRunner("find");
+        return resp?.replace(" found!\n","");
 
     } catch (error) {
-        throw error
+        throw error;
     }
 }

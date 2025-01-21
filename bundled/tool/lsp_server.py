@@ -40,7 +40,8 @@ import lsp_jsonrpc as jsonrpc
 import lsp_utils as utils
 import lsprotocol.types as lsp
 from pygls import server, uris, workspace
-from frapee_parser import FrappeParser
+from frappe_vscode.frapee_parser import FrappeParser
+from frappe_vscode import FRAPPE_PARSER
 
 WORKSPACE_SETTINGS = {}
 GLOBAL_SETTINGS = {}
@@ -51,7 +52,7 @@ MAX_WORKERS = 5
 LSP_SERVER = server.LanguageServer(
     name="Frappe Support for VSCode", version="0.1", max_workers=MAX_WORKERS
 )
-FRAPPE_PARSER = FrappeParser()
+
 
 # **********************************************************
 # Tool specific code goes below this.
@@ -87,7 +88,7 @@ def did_close(params: lsp.DidCloseTextDocumentParams) -> None:
     """LSP handler for textDocument/didClose request."""
     document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
     # Publishing empty diagnostics to clear the entries for this file.
-    LSP_SERVER.publish_diagnostics(document.uri, [])
+    # LSP_SERVER.publish_diagnostics(document.uri, [])
 
 
 DIAGNOSTIC_RE = re.compile(r"")
@@ -100,32 +101,37 @@ def _get_severity(*_codes: list[str]) -> lsp.DiagnosticSeverity:
 
 
 @LSP_SERVER.feature(lsp.TEXT_DOCUMENT_COMPLETION)
-def suggest_completion(params: lsp.InitializeParams) -> None:
-    return []
+def suggest_completion(params: lsp.CompletionParams) -> None:
+    from frappe_vscode.doc_type_helpers import FrappeSuggestionHelper
+
+    text_doc = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
+    result = FrappeSuggestionHelper(params.position, text_doc, FRAPPE_PARSER)
+
+    return result
 
 
-@LSP_SERVER.feature("frappe/tree_data")
+@LSP_SERVER.feature("frappe/get_data")
 def send_frappe_data(params: lsp.InitializeParams) -> None:
-    pass
+    data_type = params.dataType
+    match data_type:
+        case "app":
+            return list(FRAPPE_PARSER.FrappeApps.values())
 
 
 # **********************************************************
 # Required Language Server Initialization and Exit handlers.
 # **********************************************************
 @LSP_SERVER.feature(lsp.INITIALIZE)
-def initialize(params: lsp.InitializeParams) -> None:
+async def initialize(params: lsp.InitializeParams) -> None:
     """LSP handler for initialize request."""
     log_to_output(f"CWD Server: {os.getcwd()}")
 
     paths = "\r\n   ".join(sys.path)
     log_to_output(f"sys.path used to run Server:\r\n   {paths}")
 
-
     GLOBAL_SETTINGS.update(**params.initialization_options.get("globalSettings", {}))
     benchLocation = params.initialization_options.get("benchLocation")
-    GLOBAL_SETTINGS.update(
-        {"benchLocation": benchLocation}
-    )
+    GLOBAL_SETTINGS.update({"benchLocation": benchLocation})
     settings = params.initialization_options["settings"]
     _update_workspace_settings(settings)
     log_to_output(
@@ -134,7 +140,8 @@ def initialize(params: lsp.InitializeParams) -> None:
     log_to_output(
         f"Global settings:\r\n{json.dumps(GLOBAL_SETTINGS, indent=4, ensure_ascii=False)}\r\n"
     )
-    FRAPPE_PARSER.Intialize(benchLocation)
+
+    await FRAPPE_PARSER.Intialize(benchLocation, LSP_SERVER)
 
 
 @LSP_SERVER.feature(lsp.EXIT)

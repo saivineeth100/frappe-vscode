@@ -1,6 +1,7 @@
 
 import * as vscode from 'vscode';
 import { TreeViewHelper } from '../tree_view_helper';
+import { FrappeApp, FrappeModule, FrappeDocType, FrappeDocTypeField } from '../models/FrappeApp';
 
 export class CustomTreeItem extends vscode.TreeItem {
     constructor(
@@ -19,6 +20,7 @@ export class CustomTreeItem extends vscode.TreeItem {
 class FrappeAppTree extends CustomTreeItem {
     constructor(
         public readonly label: string,
+        public readonly app: FrappeApp,
         private version?: string,
         public readonly collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.Collapsed
     ) {
@@ -31,6 +33,7 @@ class FrappeAppTree extends CustomTreeItem {
 class FrappeAppModuleTree extends CustomTreeItem {
     constructor(
         public readonly label: string,
+        public readonly module: FrappeModule,
         public readonly collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.Collapsed
     ) {
         super(label, collapsibleState);
@@ -43,6 +46,7 @@ class FolderTreeItem extends CustomTreeItem {
 class FrappeDocTypeTree extends CustomTreeItem {
     constructor(
         public readonly label: string,
+        public readonly docType: FrappeDocType,
         public readonly collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.Collapsed
     ) {
         super(label, collapsibleState);
@@ -52,6 +56,7 @@ class FrappeDocTypeTree extends CustomTreeItem {
 class FrappeAppDocTypeFieldTree extends CustomTreeItem {
     constructor(
         public readonly label: string,
+        public readonly docTypeField: FrappeDocTypeField,
         public readonly collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.None
     ) {
         super(label, collapsibleState);
@@ -74,47 +79,45 @@ export class FrappeTreeViewProvider implements vscode.TreeDataProvider<CustomTre
     getTreeItem(element: CustomTreeItem): vscode.TreeItem | Thenable<vscode.TreeItem> {
         return element;
     }
-    getChildren(element?: CustomTreeItem | undefined): vscode.ProviderResult<CustomTreeItem[]> {
-
+    async getChildren(element?: CustomTreeItem | undefined): Promise<CustomTreeItem[] | undefined> {
+        if (!this.treeViewHelper.serverIntialized) {
+            return [];
+        }
         if (element instanceof FrappeAppTree) {
-            const modules: vscode.ProviderResult<CustomTreeItem[]> = [];
-            // element.FrappeApp.Modules.forEach(
-            //     (module, key) => {
-
-            //         modules.push(new FrappeAppModuleTree(key, module));
-            //     }
-            // );
+            const modules: FrappeAppModuleTree[] = [];
+            for (const moduleKey in element.app.Modules) {
+                const module = element.app.Modules[moduleKey];
+                modules.push(new FrappeAppModuleTree(moduleKey, module));
+            }
             return modules;
 
         }
         if (element instanceof FrappeAppModuleTree) {
-            const doc_types: vscode.ProviderResult<CustomTreeItem[]> = [];
-            // element.FrappeModule.DocTypes.forEach(
-            //     (doc_type, key) => {
-
-            //         doc_types.push(new FrappeDocTypeTree(key, doc_type));
-            //     }
-            // );
-            return doc_types;
+            const docTypes: FrappeDocTypeTree[] = [];
+            for (const docKey in element.module.DocTypes) {
+                const docType = element.module.DocTypes[docKey];
+                docTypes.push(new FrappeDocTypeTree(docKey, docType));
+            }
+            return docTypes;
         }
         if (element instanceof FrappeDocTypeTree) {
-            const doc_type_fields: vscode.ProviderResult<CustomTreeItem[]> = [];
-            // element.FrappeDocType.DocTypeFields.forEach(
-            //     (doc_type_field, key) => {
-
-            //         doc_type_fields.push(new FrappeAppDocTypeFieldTree(key, doc_type_field));
-            //     }
-            // );
-            return doc_type_fields;
+            const docTypeFields: FrappeAppDocTypeFieldTree[] = [];
+            for (const fieldKey in element.docType.Fields) {
+                const docTypeField = element.docType.Fields[fieldKey];
+                docTypeFields.push(new FrappeAppDocTypeFieldTree(fieldKey, docTypeField));
+            }
+            return docTypeFields;
         }
-        if (element === null) {
+        if (element === undefined || element === null) {
 
-            const frappApps = [];
-            // for (const [app_name, app] of this.frappe_parser.FrappeApps.entries()) {
-            //     frappe_apps.push(new FrappeAppTree(app_name, app, app.Version, vscode.TreeItemCollapsibleState.Collapsed));
-            // }
+            const frappApps: FrappeAppTree[] = [];
+            const apps = await this.treeViewHelper.getDataFromServer();
+            for (const app of apps) {
+                frappApps.push(new FrappeAppTree(app.Name, app, app.Version, vscode.TreeItemCollapsibleState.Collapsed));
+            }
             return frappApps;
         }
+        return undefined;
     }
     // getParent?(element: FrappeApp): vscode.ProviderResult<FrappeApp> {
     //     throw new Error('Method not implemented.');
