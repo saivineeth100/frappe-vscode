@@ -2,11 +2,14 @@
     "name": "frappe-vscode",
     "displayName": "Frappe Framework Support for VS Code",
     "description": "code suggestion and snippets for frappe apps",
-    "version": "0.0.1-dev",
+    "version": "0.0.2",
     "preview": true,
     "serverInfo": {
         "name": "Frappe Framework Support for VS Code",
         "module": "frappe-vscode"
+    },
+    "sponsor": {
+        "url": "https://github.com/sponsors/saivineeth100"
     },
     "publisher": "saivineeth",
     "license": "MIT",
