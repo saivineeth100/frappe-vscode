@@ -12,6 +12,7 @@ FRAPPE_PARSER = FrappeParser()
 ROUTER = FunctionCallRouter()
 DOC_MANAGER = DocManager()
 
-ROUTER.register_route(
-    re.compile(r"frappe(?:\.db)?\.get_list"), GetListSuggestionHandler(FRAPPE_PARSER)
+ROUTER.register_handler(
+    re.compile(r"frappe(?:\.db)?\.(get_list|get_all)"),
+    GetListSuggestionHandler(FRAPPE_PARSER),
 )
