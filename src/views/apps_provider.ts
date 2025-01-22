@@ -41,6 +41,12 @@ class FrappeAppModuleTree extends CustomTreeItem {
     }
 }
 class FolderTreeItem extends CustomTreeItem {
+    constructor(public readonly label: string,
+        public readonly module: FrappeModule,
+        public readonly collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.Collapsed) {
+        super(label, collapsibleState);
+        this.iconPath = new vscode.ThemeIcon("folder");
+    }
 
 }
 class FrappeDocTypeTree extends CustomTreeItem {
@@ -55,11 +61,10 @@ class FrappeDocTypeTree extends CustomTreeItem {
 }
 class FrappeAppDocTypeFieldTree extends CustomTreeItem {
     constructor(
-        public readonly label: string,
         public readonly docTypeField: FrappeDocTypeField,
         public readonly collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.None
     ) {
-        super(label, collapsibleState);
+        super(`${docTypeField.Name}(${docTypeField.Label})`, collapsibleState);
         this.iconPath = new vscode.ThemeIcon("variable");
         // this.tooltip = `label - ${FrappeDocTypeField.Label},Field Type - ${FrappeDocTypeField.FieldType}`
     }
@@ -93,18 +98,25 @@ export class FrappeTreeViewProvider implements vscode.TreeDataProvider<CustomTre
 
         }
         if (element instanceof FrappeAppModuleTree) {
-            const docTypes: FrappeDocTypeTree[] = [];
-            for (const docKey in element.module.DocTypes) {
-                const docType = element.module.DocTypes[docKey];
-                docTypes.push(new FrappeDocTypeTree(docKey, docType));
+
+
+            return [new FolderTreeItem("DocTypes", element.module)];
+        }
+        if (element instanceof FolderTreeItem) {
+            if (element.label === "DocTypes") {
+                const docTypes: FrappeDocTypeTree[] = [];
+                for (const docKey in element.module.DocTypes) {
+                    const docType = element.module.DocTypes[docKey];
+                    docTypes.push(new FrappeDocTypeTree(docKey, docType));
+                }
+                return docTypes;
             }
-            return docTypes;
         }
         if (element instanceof FrappeDocTypeTree) {
             const docTypeFields: FrappeAppDocTypeFieldTree[] = [];
             for (const fieldKey in element.docType.Fields) {
                 const docTypeField = element.docType.Fields[fieldKey];
-                docTypeFields.push(new FrappeAppDocTypeFieldTree(fieldKey, docTypeField));
+                docTypeFields.push(new FrappeAppDocTypeFieldTree(docTypeField));
             }
             return docTypeFields;
         }

@@ -36,6 +36,8 @@ update_sys_path(
 # Imports needed for the language server goes below this.
 # **********************************************************
 # pylint: disable=wrong-import-position,import-error
+
+from frappe_vscode.doc_manager import DocChanges, DocManager
 import lsp_jsonrpc as jsonrpc
 import lsp_utils as utils
 import lsprotocol.types as lsp
@@ -89,6 +91,42 @@ def did_close(params: lsp.DidCloseTextDocumentParams) -> None:
     document = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
     # Publishing empty diagnostics to clear the entries for this file.
     # LSP_SERVER.publish_diagnostics(document.uri, [])
+
+
+@LSP_SERVER.feature(lsp.TEXT_DOCUMENT_DID_CHANGE)
+def did_change(params: lsp.DidChangeTextDocumentParams):
+    from frappe_vscode.doc_type_helpers import getFunctionDetails
+    from frappe_vscode import DOC_MANAGER
+
+    text_doc = LSP_SERVER.workspace.get_text_document(params.text_document.uri)
+    #return
+    try:
+        if not len(params.content_changes) == 1:
+            return
+        first_change = params.content_changes[0]
+        start_range = copy.deepcopy(first_change.range.start)
+        function_details = getFunctionDetails(first_change.range.start, text_doc)
+        if function_details == None:
+            doc = DOC_MANAGER.get_doc(params.text_document.uri)
+            if doc == None:
+                return
+            current_pos = doc.StartPosition.character + len(doc.ChangedText)
+            if current_pos == start_range.character + len(first_change.text):
+                doc.ChangedText += first_change.text
+            else:
+                doc.ChangedText = doc.ChangedText[: -(first_change.range_length)]
+            return
+        t_range = copy.deepcopy(start_range)
+        t_range.line += 1
+        t_range.character += 1 + len(first_change.text)
+        DOC_MANAGER.add_to_docs(
+            params.text_document.uri,
+            DocChanges("", t_range, full_text=text_doc.source),
+        )
+        return
+
+    except:
+        pass
 
 
 DIAGNOSTIC_RE = re.compile(r"")

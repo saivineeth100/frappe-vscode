@@ -1,3 +1,4 @@
+import copy
 from frappe_vscode.frapee_parser import FrappeParser
 
 
@@ -5,7 +6,9 @@ from lsprotocol import types as lsptypes
 from lsprotocol.types import CompletionItem, CompletionItemLabelDetails, Position
 
 
-def GetDocTypeCompletion(name: str, frappe_parser: FrappeParser):
+def GetDocTypeCompletion(
+    name: str, frappe_parser: FrappeParser, within_string: bool = False
+):
     doc_type = frappe_parser.FrappeDocTypes.get(name)
     app = frappe_parser.FrappeApps.get(doc_type.AppName)
     markdown_values = [
@@ -19,7 +22,7 @@ def GetDocTypeCompletion(name: str, frappe_parser: FrappeParser):
     item = CompletionItem(
         name,
         kind=lsptypes.CompletionItemKind.Text,
-        insert_text=f'"{name}"',
+        insert_text=name if within_string else f'"{name}"',
         label_details=lsptypes.CompletionItemLabelDetails(
             f" Module - {doc_type.ModuleName}"
         ),
@@ -31,3 +34,19 @@ def GetDocTypeCompletion(name: str, frappe_parser: FrappeParser):
         # detail="detail",
     )
     return item
+
+
+def get_default_doc_fields():
+    return copy.deepcopy(BASE_DOC_FIELDS)
+
+
+BASE_DOC_FIELDS = [
+    "doctype",
+    "name",
+    "flags",
+    "owner",
+    "creation",
+    "modified",
+    "modified_by",
+    "idx",
+]

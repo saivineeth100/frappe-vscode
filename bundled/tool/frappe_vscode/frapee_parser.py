@@ -2,9 +2,14 @@ import os
 import json
 
 import asyncio
+from collections import OrderedDict
 
-
-from frappe_vscode.models.frappe_app import FrappeApp, FrappeDocType, FrappeDocTypeField, FrappeModule
+from frappe_vscode.models.frappe_app import (
+    FrappeApp,
+    FrappeDocType,
+    FrappeDocTypeField,
+    FrappeModule,
+)
 
 
 import frappe
@@ -13,12 +18,12 @@ import frappe
 class FrappeParser:
     FrappeApps: dict[str, FrappeApp]
     FrappeDocTypes: dict[str, FrappeDocType]
-    FrappeDocTypeNames: dict[str, str]
+    FrappeDocTypeNames: OrderedDict[str, str]
     BenchLocation: str
 
     def __init__(self):
         self.FrappeApps = {}
-        self.FrappeDocTypeNames = {}
+        self.FrappeDocTypeNames = OrderedDict()
         self.FrappeDocTypes = {}
         self.BenchLocation = None
 
@@ -39,6 +44,7 @@ class FrappeParser:
             )
             self.FrappeApps.setdefault(app_name, app)
             await self._intializeModules(app)
+        self.FrappeDocTypeNames = get_ordered_dict(self.FrappeDocTypeNames)
 
         LSP_SERVER.send_notification("frappe/parser_intiliazed")
 
@@ -53,6 +59,7 @@ class FrappeParser:
             module = FrappeModule(module_name, app.Name, module_path)
             app.Modules.setdefault(module_name, module)
             await self._intializeDocTypes(module)
+        app.Modules = get_ordered_dict(app.Modules)
 
     async def _intializeDocTypes(self, module: FrappeModule):
 
@@ -89,6 +96,8 @@ class FrappeParser:
                     doc_type_field.get("reqd") == 0,
                 )
                 doc_type.Fields.setdefault(field_name, field)
+            doc_type.Fields = get_ordered_dict(doc_type.Fields)
+        module.DocTypes = get_ordered_dict(module.DocTypes)
 
     def searchDocTypeStartsWith(self, query: str, max_count=10):
         normalized_query = query.lower().strip()
@@ -113,3 +122,8 @@ def get_directories_os_scandir(path):
         if entry.is_dir() and not entry.name.startswith("__"):
             directories.append(entry.name)
     return directories
+
+
+def get_ordered_dict(dict: OrderedDict[str, any]):
+    ordered_dict = OrderedDict(sorted(dict.items()))
+    return ordered_dict
