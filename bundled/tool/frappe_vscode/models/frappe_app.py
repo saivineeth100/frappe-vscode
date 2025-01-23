@@ -19,12 +19,30 @@ class FrappeModule:
     AppName: str
     Path: str
     DocTypes: OrderedDict[str, "FrappeDocType"]
+    Reports: OrderedDict[str, "FrappeReport"]
 
     def __init__(self, name, app_name, path):
         self.Name = name
         self.AppName = app_name
         self.Path = path
         self.DocTypes = OrderedDict()
+        self.Reports = OrderedDict()
+
+
+class FrappeReport:
+    Name: str
+    ModuleName: str
+    Path: str
+    IsStandard: bool = False
+    ReportType: str
+    AppName: str
+
+    def __init__(self, name, report_tpe, module_name, app_name, path):
+        self.Name = name
+        self.ReportType = report_tpe
+        self.ModuleName = module_name
+        self.AppName = app_name
+        self.Path = path
 
 
 class FrappeDocType:

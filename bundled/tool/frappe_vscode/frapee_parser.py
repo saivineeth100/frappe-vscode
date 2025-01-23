@@ -9,6 +9,7 @@ from frappe_vscode.models.frappe_app import (
     FrappeDocType,
     FrappeDocTypeField,
     FrappeModule,
+    FrappeReport,
 )
 
 
@@ -59,6 +60,7 @@ class FrappeParser:
             module = FrappeModule(module_name, app.Name, module_path)
             app.Modules.setdefault(module_name, module)
             await self._intializeDocTypes(module)
+            await self._intializeReports(module)
         app.Modules = get_ordered_dict(app.Modules)
 
     async def _intializeDocTypes(self, module: FrappeModule):
@@ -98,6 +100,29 @@ class FrappeParser:
                 doc_type.Fields.setdefault(field_name, field)
             doc_type.Fields = get_ordered_dict(doc_type.Fields)
         module.DocTypes = get_ordered_dict(module.DocTypes)
+
+    async def _intializeReports(self, module: FrappeModule):
+        report_parent_dir = os.path.join(module.Path, "report")
+        dirs = get_directories_os_scandir(report_parent_dir)
+
+        for dir in dirs:
+            report_dir = os.path.join(report_parent_dir, dir)
+            report_json_file = os.path.join(report_dir, f"{dir}.json")
+            json_text = frappe.read_file(report_json_file)
+            if json_text == None:
+                return
+            report_json = json.loads(json_text)
+            report_name: str = report_json.get("report_name")
+            report = FrappeReport(
+                report_name,
+                report_json.get("report_type"),
+                module.Name,
+                module.AppName,
+                report_dir,
+            )
+            report.IsStandard = report_json.get("is_standard", "No") == "Yes"
+            module.Reports.setdefault(report_name, report)
+        module.Reports = get_ordered_dict(module.Reports)
 
     def searchDocTypeStartsWith(self, query: str, max_count=10):
         normalized_query = query.lower().strip()
