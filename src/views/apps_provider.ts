@@ -1,7 +1,7 @@
 
 import * as vscode from 'vscode';
 import { TreeViewHelper } from '../tree_view_helper';
-import { FrappeApp, FrappeModule, FrappeDocType, FrappeDocTypeField } from '../models/FrappeApp';
+import { FrappeApp, FrappeModule, FrappeDocType, FrappeDocTypeField, FrappeReport } from '../models/FrappeApp';
 
 export class CustomTreeItem extends vscode.TreeItem {
     constructor(
@@ -48,6 +48,16 @@ class FolderTreeItem extends CustomTreeItem {
         this.iconPath = new vscode.ThemeIcon("folder");
     }
 
+}
+class FrappeReportTree extends CustomTreeItem {
+    constructor(
+        public readonly label: string,
+        public readonly frappeReport: FrappeReport,
+        public readonly collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.None
+    ) {
+        super(label, collapsibleState);
+
+    }
 }
 class FrappeDocTypeTree extends CustomTreeItem {
     constructor(
@@ -100,7 +110,10 @@ export class FrappeTreeViewProvider implements vscode.TreeDataProvider<CustomTre
         if (element instanceof FrappeAppModuleTree) {
 
 
-            return [new FolderTreeItem("DocTypes", element.module)];
+            return [
+                new FolderTreeItem("DocTypes", element.module),
+                new FolderTreeItem("Reports", element.module),
+            ];
         }
         if (element instanceof FolderTreeItem) {
             if (element.label === "DocTypes") {
@@ -110,6 +123,14 @@ export class FrappeTreeViewProvider implements vscode.TreeDataProvider<CustomTre
                     docTypes.push(new FrappeDocTypeTree(docKey, docType));
                 }
                 return docTypes;
+            }
+            if (element.label === "Reports") {
+                const reports: FrappeReportTree[] = [];
+                for (const reportName in element.module.Reports) {
+                    const report = element.module.DocTypes[reportName];
+                    reports.push(new FrappeReportTree(reportName, report));
+                }
+                return reports;
             }
         }
         if (element instanceof FrappeDocTypeTree) {

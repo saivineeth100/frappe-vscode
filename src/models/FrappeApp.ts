@@ -4,15 +4,27 @@ export class FrappeModule {
     AppName: string;
     Path: string;
     DocTypes: { [key: string]: FrappeDocType };
+    Reports: { [key: string]: FrappeReport };
 
     constructor(name: string, appName: string, path: string) {
         this.Name = name;
         this.AppName = appName;
         this.Path = path;
         this.DocTypes = {};
+        this.Reports = {};
     }
 }
+export class FrappeReport {
+    Name: string;
+    ModuleName: string;
+    Path: string;
 
+    constructor(name: string, moduleName: string, path: string) {
+        this.Name = name;
+        this.ModuleName = moduleName;
+        this.Path = path;
+    }
+}
 export class FrappeApp {
     Name: string;
     Version: string;
