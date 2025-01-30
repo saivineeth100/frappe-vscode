@@ -5,7 +5,7 @@ from frappe_vscode.models.function_details import FunctionDetails
 from frappe_vscode.handlers.base_function_suggestion_handler import (
     FunctionSuggestionsHandler,
 )
-from frappe_vscode.utils import GetDocTypeCompletion, get_default_doc_fields
+from frappe_vscode.utils import GetDocTypeCompletion, get_default_doc_fields, get_doc_type_suggestions
 from lsprotocol import types as lsptypes
 
 import ast
@@ -22,16 +22,12 @@ class GetListSuggestionHandler(FunctionSuggestionsHandler):
         args = function_details.args
         if selected_index == 1:
             current_arg = args.get(selected_index)
-            matched_doctypes = frappe_parser.searchDocTypeStartsWith(
-                current_arg.string_value
-            )
             within_string = isinstance(current_arg.arg_value, ast.Constant)
-            CompletionItems = [
-                GetDocTypeCompletion(i, frappe_parser, within_string)
-                for i in matched_doctypes
-            ]
-            is_complete = len(matched_doctypes) < 10
-            return lsptypes.CompletionList(not is_complete, CompletionItems)
+            query_string = current_arg.string_value
+            completion_list = get_doc_type_suggestions(
+                frappe_parser, query_string, within_string
+            )
+            return completion_list
         else:
 
             """
@@ -84,6 +80,8 @@ class GetListSuggestionHandler(FunctionSuggestionsHandler):
                         [self.get_kwarg_completion_item(i) for i in k_suggestions],
                     )
         return super().handle()
+
+
 
     def get_kwarg_completion_item(self, key):
         kw_arg: dict = KeywordArgs[key]
@@ -190,8 +188,14 @@ KeywordArgs = {
         "handler": fields_arg_handler,
         "is_suffix_template": True,
     },
-    "filters": {"completion_suffix": "[$0]"},
-    "or_filters": {},
+    "filters": {
+        "completion_suffix": "[$0]",
+        "is_suffix_template": True,
+    },
+    "or_filters": {
+        "completion_suffix": "[$0]",
+        "is_suffix_template": True,
+    },
     "docstatus": {},
     "group_by": {},
     "order_by": {},

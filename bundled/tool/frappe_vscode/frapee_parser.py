@@ -124,12 +124,15 @@ class FrappeParser:
             module.Reports.setdefault(report_name, report)
         module.Reports = get_ordered_dict(module.Reports)
 
-    def searchDocTypeStartsWith(self, query: str, max_count=10):
+    def searchDocTypes(self, query: str, max_count=10):
         normalized_query = query.lower().strip()
         results = []
         counter = 0
         for normalized_string, original_string in self.FrappeDocTypeNames.items():
-            if not normalized_string.startswith(normalized_query):
+            if not (
+                normalized_string.startswith(normalized_query)
+                or normalized_query in normalized_string
+            ):
                 continue
             counter += 1
             results.append(original_string)

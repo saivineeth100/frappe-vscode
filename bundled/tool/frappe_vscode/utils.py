@@ -6,6 +6,20 @@ from lsprotocol import types as lsptypes
 from lsprotocol.types import CompletionItem, CompletionItemLabelDetails, Position
 
 
+
+
+
+def get_doc_type_suggestions(frappe_parser: FrappeParser, query_string, within_string):
+    matched_doctypes = frappe_parser.searchDocTypes(query_string)
+
+    CompletionItems = [
+        GetDocTypeCompletion(i, frappe_parser, within_string) for i in matched_doctypes
+    ]
+    is_complete = len(matched_doctypes) < 10
+    completion_list = lsptypes.CompletionList(not is_complete, CompletionItems)
+    return completion_list
+
+
 def GetDocTypeCompletion(
     name: str, frappe_parser: FrappeParser, within_string: bool = False
 ):
